@@ -736,7 +736,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="模型测试脚本，包含结构/推理/ONNX/FLOPs 等功能")
     parser.add_argument("--mode", choices=["model", "inference"], default="model",
                         help="运行模式：model - 演示模型结构及FLOPs；inference - 测试推理时间")
-    parser.add_argument("--run_dir", "-r", type=str, default=r'E:\WPS Office\1628575652\WPS企业云盘\清华大学\我的企业文档\课题组相关\理想项目\LX_model_injurypredict\runs\InjuryPredictModel_03032051',
+    parser.add_argument("--run_dir", "-r", type=str, default=r'.\InjuryPredict\runs\InjuryPredictModel_05021735',
                         help="训练结果目录（仅在 inference 模式下需要）")
     parser.add_argument("--weight_file", "-w", type=str, default="best_val_loss.pth",
                         help="模型权重文件名（仅在 inference 模式下需要）")

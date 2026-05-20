@@ -1,5 +1,4 @@
 # Project-wide ignores
-ARS_codetask_prompt.md
 Injprompt.md
 data/
 # data/processed/
@@ -13,12 +12,6 @@ __pycache__/
 *.pyd
 # ARS_Pipeline.md
 # params_constraint.md
-
-# ========================
-# ARS_optim specific rules
-# ========================
-ARS_optim/saved_models/
-ARS_optim/saved_eval/
 
 # ===========================
 # InjuryPredict specific rules

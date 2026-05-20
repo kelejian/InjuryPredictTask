@@ -13,7 +13,7 @@ run_pulse_injury_inference.py
   * 若缺省 case_id 列且列数正好等于 len(FEATURE_ORDER)+1，则会按顺序重命名。
   * 不允许重复 case_id。
 
-脚本依赖项目 common 和各子模块中的模型定义，需在 LX_project 根目录执行。
+脚本依赖项目 common 和各子模块中的模型定义，建议在 InjuryPredictTask 根目录执行。
 """
 import os
 os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = 'T'
@@ -41,11 +41,12 @@ from PulsePredict.model.model import HybridPulseCNN
 
 
 DEFAULT_OUTPUT_ROOT = DATA_DIR / "inference_outputs"
-DEFAULT_PULSE_RUN_DIR = PULSE_PREDICT_DIR / "saved" / "models" / "HybridPulseCNN" / "0415_161324"
-DEFAULT_INJURY_RUN_DIR = INJURY_PREDICT_DIR / "runs" / "InjuryPredictModel_03280055"
+DEFAULT_PULSE_RUN_DIR = PULSE_PREDICT_DIR / "saved" / "models" / "HybridPulseCNN" / "0502_123240"
+DEFAULT_INJURY_RUN_DIR = INJURY_PREDICT_DIR / "runs" / "InjuryPredictModel_05021735"
 PULSE_FEATURE_NAMES = ["impact_velocity", "impact_angle", "overlap"]
 
-INPUT_CSV_FILE = Path(r"E:\WPS Office\1628575652\WPS企业云盘\清华大学\我的企业文档\课题组相关\理想项目\LX_project\ARS_optim\saved_eval\cases_for_sledtest_0331.csv")  # 可在此处修改输入CSV路径，或通过命令行参数覆盖
+# 默认输入路径保留为开发期便捷配置，实际 CSV 可放在该位置或通过 --input-csv 覆盖。
+INPUT_CSV_FILE = DATA_DIR / "inference_inputs" / "case_parameters.csv"
 
 def parse_args() -> argparse.Namespace:
     # 解析命令行参数，返回一个命名空间对象

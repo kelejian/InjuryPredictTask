@@ -29,7 +29,7 @@ from InjuryPredict.utils.tools import get_mais_3c_metrics
 # --- 1. 配置区：请在此处设置您的路径 ---
 
 # 1.1) 要评估的模型所在的运行目录
-RUN_DIR = Path(RUNS_DIR) / "InjuryPredictModel_04241327"
+RUN_DIR = Path(RUNS_DIR) / "InjuryPredictModel_05021735"
 
 # 1.2) 要加载的模型权重文件名（相对于 RUN_DIR）
 FOLD = Path("") # 可以指定K折中的某一折，例如 Path("Fold_1")，如果没有K折划分则保持 Path("")

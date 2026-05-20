@@ -1,23 +1,27 @@
-# LX_project 说明
+# InjuryPredictTask 说明
 
-## 1. 项目结构
+## 1. 项目定位
 
-`LX_project` 由四部分组成：
+`InjuryPredictTask` 是面向论文写作与实验复现整理出的损伤预测独立项目，核心内容包括碰撞波形预测模块 `PulsePredict` 和含波形输入的损伤预测模块 `InjuryPredict`。
 
-1. `common/`
-   共享特征顺序、数据路径、归一化接口、划分读写工具和通用指标。
-2. `PulsePredict/`
-   碰撞波形预测模型与训练、测试代码。
-3. `InjuryPredict/`
-   损伤预测模型、`.pt` 数据准备脚本和训练评估代码。
-4. `ARS_optim/`
-   在约束条件下执行“策略直推 + 局部精调”的两阶段参数寻优。
+当前仓库不包含自适应乘员约束系统参数寻优代码，但损伤预测模型可作为该类系统的快速代理模型，用于在下游应用中评估不同碰撞工况和约束参数组合下的乘员损伤风险。
 
-根目录还提供统一数据准备脚本 [`prepare_data.py`](/e:/WPS Office/1628575652/WPS企业云盘/清华大学/我的企业文档/课题组相关/理想项目/LX_project/prepare_data.py) 和联合推理脚本 `run_pulse_injury_inference.py`。
+## 2. 项目结构
 
-## 2. 共享数据接口
+```text
+InjuryPredictTask/
+├─ common/                         # 共享特征顺序、路径、归一化、划分和损伤指标工具
+├─ PulsePredict/                   # 碰撞波形预测模型及训练、测试代码
+├─ InjuryPredict/                  # 损伤预测模型、processed .pt 数据准备和训练评估代码
+├─ data/                           # 本地数据目录，通常不纳入版本管理
+├─ prepare_data.py                 # 原始数据打包、划分和归一化配置生成入口
+├─ run_pulse_injury_inference.py   # PulsePredict + InjuryPredict 联合推理入口
+└─ ARS_Pipeline.md                 # 自适应约束系统应用背景说明
+```
 
-跨子项目共享的数据接口由 [`common/settings.py`](/e:/WPS Office/1628575652/WPS企业云盘/清华大学/我的企业文档/课题组相关/理想项目/LX_project/common/settings.py) 统一管理。当前默认目录结构如下：
+## 3. 共享数据接口
+
+跨模块共享的数据接口由 [`common/settings.py`](./common/settings.py) 统一管理。默认目录结构如下：
 
 ```text
 data/
@@ -39,100 +43,75 @@ data/
 
 当前约定：
 
-- `injury` 任务保留三套划分：`combined / driver / passenger`
-- `pulse` 任务只保留一套完整划分
-- 全项目共享一份 `normalization_config.json`
-- 默认开发与训练口径为 `combined`
+- `pulse` 任务只保留一套完整划分。
+- `injury` 任务保留 `combined / driver / passenger` 三套划分。
+- `PulsePredict` 与 `InjuryPredict` 共用同一份 `normalization_config.json`。
+- 默认训练和评估口径为 `combined`。
 
-## 3. 数据准备
+## 4. 数据准备
 
-根目录脚本 [`prepare_data.py`](/e:/WPS Office/1628575652/WPS企业云盘/清华大学/我的企业文档/课题组相关/理想项目/LX_project/prepare_data.py) 负责：
+根目录脚本 [`prepare_data.py`](./prepare_data.py) 负责：
 
-- 打包 `raw_packed/raw_data_packed.npz`
-- 生成 `pulse` 任务的一套完整 split
-- 生成 `injury` 任务的 `combined / driver / passenger` 三套 split
-- 基于合并主副驾分布生成共享 `normalization_config.json`
+- 打包 `data/raw_packed/raw_data_packed.npz`。
+- 生成 `data/split_indices/pulse/`。
+- 生成 `data/split_indices/injury/{combined,driver,passenger}/`。
+- 基于合并主副驾训练集生成共享 `data/normalization_config.json`。
 
-运行方式：
+运行方式参考：
 
 ```bash
 conda activate pytorch
 python -m prepare_data
 ```
 
-运行后通常会得到：
+默认读取 `data/source/distribution.csv` 和 `data/source/pulse_csv/`。如果原始数据仍放在其他位置，可继续通过 `--distribution` 和 `--pulse-dir` 覆盖。
 
-- `data/raw_packed/raw_data_packed.npz`
-- `data/split_indices/injury/combined/`
-- `data/split_indices/injury/driver/`
-- `data/split_indices/injury/passenger/`
-- `data/split_indices/pulse/`
-- `data/normalization_config.json`
+## 5. 训练与评估入口
 
-## 4. 子项目入口
-
-### 4.1 PulsePredict
+### 5.1 PulsePredict
 
 ```bash
 python -m PulsePredict.train -c PulsePredict/config.json
-python -m PulsePredict.test -r PulsePredict/saved/models/.../model_best.pth
+python -m PulsePredict.test -r PulsePredict/saved/models/<experiment>/<run>/model_best.pth
 ```
 
-### 4.2 InjuryPredict
+训练结果与测试输出默认保存在 `PulsePredict/saved/`。
 
-先把 `raw_packed + split_indices + normalization_config` 转成 `.pt` 子集：
+### 5.2 InjuryPredict
+
+先将共享打包数据转换为 `InjuryPredict` 使用的 processed `.pt` 数据：
 
 ```bash
 python -m InjuryPredict.Injurydata_prepare
 ```
 
-再训练或评估模型：
+默认使用 `PulsePredict/saved/models/HybridPulseCNN/0502_123240/` 下的 `model_best.pth` 和 `config.json`。如需切换波形预测模型，可传入 `--pulse-checkpoint` 和 `--pulse-config`。
+
+再训练或评估损伤预测模型：
 
 ```bash
 python -m InjuryPredict.train
 python -m InjuryPredict.eval_model
 ```
 
-### 4.3 ARS_optim
+评估入口默认使用 `InjuryPredict/runs/InjuryPredictModel_05021735/` 与 `best_val_loss.pth`。如需评估其他 run，可传入 `--run_dir` 和 `--weight_file`。
+
+训练结果与评估输出默认保存在 `InjuryPredict/runs/`。
+
+### 5.3 联合推理
+
+`run_pulse_injury_inference.py` 用于从包含工况参数的 CSV 执行两阶段推理：先预测碰撞波形，再预测 `HIC15 / Dmax / Nij / AIS / MAIS`。
 
 ```bash
-python -m ARS_optim.run_train
-python -m ARS_optim.run_eval
-python -m ARS_optim.plot_eval_cases --eval_csv ARS_optim/saved_eval/.../results/evaluation_results.csv --case_ids 1 2 3
+python run_pulse_injury_inference.py
 ```
 
-## 5. 当前数据口径说明
-
-### 5.1 PulsePredict
-
-- 使用 `data/raw_packed/raw_data_packed.npz`
-- 使用 `data/split_indices/pulse/`
-- 不区分主驾 / 副驾划分
-
-### 5.2 InjuryPredict
-
-- 使用同一份 `raw_packed`
-- 使用 `data/split_indices/injury/<variant>/`
-- 默认 `.pt` 生成目录为 `data/processed/injury/combined/`
-
-### 5.3 ARS_optim
-
-- 默认从 `injury/combined` 视角读取经验池与验证 / 测试划分
-- 与 `PulsePredict`、`InjuryPredict` 共用同一份 `normalization_config.json`
-- 通过配置文件和权重快照重建代理链路
-- `run_eval` 在 `input_csv` 模式下只接受整组合法的 baseline trainable control；否则整组回退为 `param_space.yaml` 的 `default`
-- 若回退后的 `default` 与当前 `context` 联合后仍不合法，则该 `case` 会直接跳过，不再输出伪造的 baseline 评估结果
+默认输入为 `data/inference_inputs/case_parameters.csv`，默认模型分别来自 `PulsePredict/saved/models/HybridPulseCNN/0502_123240/` 和 `InjuryPredict/runs/InjuryPredictModel_05021735/`。输入 CSV 或模型 run 变化时，可用 `--input-csv`、`--pulse-checkpoint`、`--pulse-config`、`--injury-checkpoint` 和 `--injury-record` 覆盖。
 
 ## 6. 运行约定
 
-- 统一在 `LX_project` 根目录下运行
-- 统一使用 `python -m xxx`
-- 建议先激活项目环境：
-
-```bash
-conda activate pytorch
-```
-
+- 建议在项目根目录运行命令。
+- 建议统一使用 `python -m ...` 运行包内脚本。
 - 如需安装依赖：
 
 ```bash
@@ -143,4 +122,4 @@ pip install -r requirements.txt
 
 - [PulsePredict/README.md](./PulsePredict/README.md)
 - [InjuryPredict/README.md](./InjuryPredict/README.md)
-- [ARS_optim/README.md](./ARS_optim/README.md)
+- [ARS_Pipeline.md](./ARS_Pipeline.md)
